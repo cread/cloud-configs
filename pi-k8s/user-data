@@ -1,0 +1,60 @@
+#cloud-config
+
+# This is the user-data configuration file for cloud-init. By default this sets
+# up an initial user called "ubuntu" with password "ubuntu", which must be
+# changed at first login. However, many additional actions can be initiated on
+# first boot from this file. The cloud-init documentation has more details:
+#
+# https://cloudinit.readthedocs.io/
+
+chpasswd:
+  expire: false
+  list:
+  - ubuntu:R
+
+ssh_pwauth: false
+
+ssh_import_id:
+- gh:cread
+
+## Update apt database and upgrade packages on first boot
+package_update: true
+package_upgrade: true
+
+apt:
+  preserve_sources_list: true
+  sources:
+    docker:
+      keyid: '0EBFCD88'
+      source: 'deb https://download.docker.com/linux/ubuntu $RELEASE stable'
+    kubernetes:
+      keyid: 'BA07F4FB'
+      source: 'deb https://apt.kubernetes.io/ kubernetes-xenial main'
+
+write_files:
+- content: |
+    {
+      "exec-opts": ["native.cgroupdriver=systemd"],
+      "log-driver": "json-file",
+      "log-opts": {
+        "max-size": "100m"
+      },
+      "storage-driver": "overlay2"
+    }
+  path: /etc/docker/daemon.json
+
+## Install additional packages on first boot
+packages:
+- docker-ce
+- docker-ce-cli
+- containerd.io
+- kubeadm
+- kubectl
+- kubelet
+- jq
+- sysstat
+
+runcmd:
+- apt-mark hold kubelet kubeadm kubectl docker-ce docker-ce-cli containerd.io
+
+# vim:syntax=yaml
